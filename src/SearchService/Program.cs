@@ -4,6 +4,7 @@ using MongoDB.Entities;
 using SearchService.Config;
 using SearchService.Data;
 using SearchService.Models;
+using SearchService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 // builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDB"));
@@ -13,7 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 //     return new MongoClient(settings.ConnectionString);
 // });
 
-
+builder.Services.AddHttpClient<AuctionServiceHttpClient>();
 builder.Services.AddControllers();
 
 var app = builder.Build();
