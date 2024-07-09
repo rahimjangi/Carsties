@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using MongoDB.Entities;
+using Polly;
+using Polly.Extensions.Http;
 using SearchService.Config;
 using SearchService.Data;
 using SearchService.Models;
@@ -14,7 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 //     return new MongoClient(settings.ConnectionString);
 // });
 
-builder.Services.AddHttpClient<AuctionServiceHttpClient>();
+builder.Services.AddHttpClient<AuctionServiceHttpClient>().AddPolicyHandler(GetPolicy());
 builder.Services.AddControllers();
 
 var app = builder.Build();
@@ -23,22 +25,25 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// await DB.InitAsync("SearchDb", MongoClientSettings.FromConnectionString(builder.Configuration.GetConnectionString("MongoDbConnection")));
-
-// await DB.Index<Item>()
-// .Key(x => x.Make, KeyType.Text)
-// .Key(x => x.Model, KeyType.Text)
-// .Key(x => x.Color, KeyType.Text)
-// .CreateAsync();
-
-try
-{
-    await DbInitializer.InitDb(app);
-}
-catch (Exception ex)
+app.Lifetime.ApplicationStarted.Register(async () =>
 {
 
-    Console.WriteLine(ex);
-}
+    try
+    {
+        await DbInitializer.InitDb(app);
+    }
+    catch (Exception ex)
+    {
+
+        Console.WriteLine(ex);
+    }
+});
+
+
 
 app.Run();
+
+static IAsyncPolicy<HttpResponseMessage> GetPolicy() =>
+            HttpPolicyExtensions
+            .HandleTransientHttpError()
+            .WaitAndRetryForeverAsync(_ => TimeSpan.FromSeconds(2));
